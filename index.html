@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Phone Runner: Cyber City Audio Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0f19; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            touch-action: manipulation; 
+            user-select: none;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            width: 95%;
+            max-width: 700px;
+            height: 250px;
+            background: 
+                linear-gradient(rgba(0, 255, 135, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 135, 0.05) 1px, transparent 1px),
+                linear-gradient(transparent 150px, #1a1c23 150px, #1a1c23 200px, #111318 200px), 
+                linear-gradient(to bottom, #0d1117, #161b22); 
+            background-size: 20px 20px, 20px 20px, 100% 100%, 100% 100%;
+            border-bottom: 5px solid #00ff87; 
+            box-shadow: 0 0 30px rgba(0, 255, 135, 0.2);
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        /* Líneas de velocidad en la carretera */
+        #gameContainer::before {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            width: 200%;
+            height: 3px;
+            background: repeating-linear-gradient(90deg, #00ff87, #00ff87 30px, transparent 30px, transparent 60px);
+            animation: roadScroll 0.6s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes roadScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-60px); }
+        }
+
+        /* El monito pixel art */
+        #dino {
+            width: 24px; 
+            height: 32px; 
+            background: transparent;
+            position: absolute;
+            bottom: 10px; 
+            left: 60px;
+            z-index: 3;
+            box-shadow: 
+                4px -28px #ffffff, 8px -28px #ffffff, 12px -28px #ffffff,
+                4px -24px #ffffff, 8px -24px #00ff87, 12px -24px #ffffff, 
+                4px -20px #ffffff, 8px -20px #ffffff, 12px -20px #ffffff,
+                4px -16px #38bdf8, 8px -16px #38bdf8, 12px -16px #38bdf8, 
+                0px -12px #38bdf8, 4px -12px #38bdf8, 8px -12px #38bdf8, 12px -12px #38bdf8, 16px -12px #38bdf8,
+                4px -8px #38bdf8, 8px -8px #38bdf8, 12px -8px #38bdf8,
+                4px -4px #1e293b, 12px -4px #1e293b,
+                4px 0px #1e293b, 12px 0px #1e293b;
+        }
+
+        /* Cajas de marca */
+        .brand-obstacle {
+            position: absolute;
+            bottom: 10px; /* Posición base, el JS la alterará si flota */
+            width: 55px;
+            height: 55px;
+            background-color: #0f172a;
+            border: 2px solid #38bdf8; 
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+            box-sizing: border-box;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        /* Estilo visual extra para cuando el obstáculo es flotante (Dificultad) */
+        .brand-obstacle.floating {
+            border-color: #f43f5e; /* Borde rosa/rojo si vuela */
+            box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+        }
+        .brand-obstacle.floating .obstacle-text {
+            color: #f43f5e;
+        }
+
+        .obstacle-icon {
+            font-size: 18px;
+            margin-bottom: 2px;
+            line-height: 1;
+        }
+
+        .obstacle-text {
+            font-size: 8px;
+            font-weight: 800;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        /* Infinix Meta */
+        #infinixMeta {
+            display: none;
+            position: absolute;
+            bottom: 10px;
+            right: -150px;
+            background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+            color: #000;
+            padding: 12px 25px;
+            font-size: 20px;
+            font-weight: 900;
+            border-radius: 10px;
+            box-shadow: 0 0 25px rgba(0, 255, 135, 0.8);
+            z-index: 2;
+            animation: pulse 1s infinite alternate;
+        }
+
+        #score {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #00ff87; 
+            text-shadow: 0 0 5px rgba(0, 255, 135, 0.5);
+            z-index: 10;
+        }
+
+        .screen-text {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 20;
+            width: 80%;
+            background-color: rgba(15, 23, 42, 0.95);
+            border: 2px solid #ef4444;
+            color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        #victoryText {
+            border-color: #00ff87;
+            box-shadow: 0 0 20px rgba(0, 255, 135, 0.5);
+        }
+
+        #gameOverText h2 { color: #ef4444; margin: 0 0 10px 0; font-size: 22px; }
+        #victoryText h2 { color: #00ff87; margin: 0 0 10px 0; font-size: 28px; }
+
+        .jump {
+            animation: jumpAnim 0.8s cubic-bezier(0.15, 0.85, 0.4, 1);
+        }
+
+        @keyframes jumpAnim {
+            0% { bottom: 10px; }
+            45% { bottom: 180px; } 
+            55% { bottom: 180px; }
+            100% { bottom: 10px; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 15px rgba(0, 255, 135, 0.6); }
+            100% { transform: scale(1.05); box-shadow: 0 0 25px rgba(0, 255, 135, 0.9); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameContainer">
+        <div id="score">Esquivados: 0 / 20</div>
+        <div id="dino"></div>
+        <div id="infinixMeta">INFINIX 📱</div>
+        
+        <div id="gameOverText" class="screen-text">
+            <h2>¡TE ALCANZÓ LA COMPETENCIA! 💥</h2>
+            <p>Toca la pantalla para volver a intentarlo</p>
+        </div>
+
+        <div id="victoryText" class="screen-text">
+            <h2>¡LO LOGRASTE! 🎉🏆</h2>
+            <p>Esquivaste los rivales y alcanzaste tu Infinix.</p>
+        </div>
+    </div>
+
+<script>
+    const dino = document.getElementById("dino");
+    const gameContainer = document.getElementById("gameContainer");
+    const scoreDisplay = document.getElementById("score");
+    const gameOverText = document.getElementById("gameOverText");
+    const victoryText = document.getElementById("victoryText");
+    const infinixMeta = document.getElementById("infinixMeta");
+
+    let isJumping = false;
+    let score = 0;
+    let gameStatus = "PLAYING"; 
+    let obstacleTimeout;
+    const targetScore = 20; 
+
+    const brands = [
+        { name: "iPhone", icon: "🍏" },
+        { name: "Samsung", icon: "🪐" },
+        { name: "R.Magic", icon: "🎮" },
+        { name: "Motorola", icon: "🦇" },
+        { name: "Xiaomi", icon: "🟠" }
+    ];
+
+    // --- MOTOR DE SONIDO (Web Audio API) ---
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        
+        // Reanudar el contexto si el navegador lo pausó por seguridad
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === "jump") {
+            // Sonido de salto arcade (Frecuencia sube rápido)
+            osc.type = "square";
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(400, now + 0.15);
+            gainNode.gain.setValueAtTime(0.1, now);
+            gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        } 
+        else if (type === "milestone") {
+            // Sonido de logro cada 5 puntos (Dos tonos alegres)
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.setValueAtTime(450, now + 0.1);
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } 
+        else if (type === "gameover") {
+            // Sonido de derrota (Frecuencia cae ruidosamente)
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.linearRampToValueAtTime(60, now + 0.5);
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+        else if (type === "victory") {
+            // Fanfarria corta de victoria
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.setValueAtTime(500, now + 0.1);
+            osc.frequency.setValueAtTime(600, now + 0.2);
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.linearRampToValueAtTime(0, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        }
+    }
+
+    function handleAction(e) {
+        if (e && e.cancelable) e.preventDefault();
+        
+        // Inicializar el audio en la primera interacción del usuario (Regla de navegadores)
+        initAudio();
+
+        if (gameStatus === "GAMEOVER") {
+            restartGame();
+        } else if (gameStatus === "PLAYING") {
+            jump();
+        }
+    }
+
+    document.addEventListener("touchstart", handleAction, {passive: false});
+    document.addEventListener("keydown", function(event) {
+        if (event.code === "Space") {
+            handleAction(event);
+        }
+    });
+
+    function jump() {
+        if (isJumping) return;
+        isJumping = true;
+        dino.classList.add("jump");
+        playSound("jump"); // Reproducir sonido de salto
+
+        setTimeout(() => {
+            dino.classList.remove("jump");
+            isJumping = false;
+        }, 800); 
+    }
+
+    function createObstacle() {
+        if (gameStatus !== "PLAYING" || score >= targetScore) return;
+
+        const obstacle = document.createElement("div");
+        obstacle.classList.add("brand-obstacle");
+        
+        const randomBrand = brands[Math.floor(Math.random() * brands.length)];
+        
+        const iconDiv = document.createElement("div");
+        iconDiv.classList.add("obstacle-icon");
+        iconDiv.innerText = randomBrand.icon;
+        
+        const textDiv = document.createElement("div");
+        textDiv.classList.add("obstacle-text");
+        textDiv.innerText = randomBrand.name;
+
+        obstacle.appendChild(iconDiv);
+        obstacle.appendChild(textDiv);
+        gameContainer.appendChild(obstacle);
+
+        // --- NUEVA DIFICULTAD: ALTURA ALEATORIA ---
+        // 25% de probabilidad de que flote 12px más arriba del suelo
+        const isFloating = Math.random() < 0.25; 
+        let bottomPosition = 10; 
+        
+        if (isFloating) {
+            bottomPosition = 22; // Subido 12 píxeles
+            obstacle.classList.add("floating"); // Agrega clase visual rosa
+        }
+        obstacle.style.bottom = bottomPosition + "px";
+
+        let obstaclePosition = gameContainer.offsetWidth;
+        
+        let moveInterval = setInterval(() => {
+            if (gameStatus !== "PLAYING") {
+                clearInterval(moveInterval);
+                return;
+            }
+
+            obstaclePosition -= 3.8; 
+            obstacle.style.left = obstaclePosition + "px";
+
+            if (obstaclePosition < -80) { 
+                clearInterval(moveInterval);
+                obstacle.remove();
+                score++;
+                scoreDisplay.innerText = `Esquivados: ${score} / ${targetScore}`;
+
+                // NUEVO: Lanzar sonido especial cada 5 marcas superadas
+                if (score > 0 && score % 5 === 0 && score < targetScore) {
+                    playSound("milestone");
+                }
+
+                if (score === targetScore) {
+                    triggerMeta();
+                }
+            }
+
+            let dinoRect = dino.getBoundingClientRect();
+            let obsRect = obstacle.getBoundingClientRect();
+
+            let obstacleLeftJusto = obsRect.left + 8;
+            let obstacleRightJusto = obsRect.right - 8;
+            let obstacleTopJusto = obsRect.top + 6;
+            let obstacleBottomJusto = obsRect.bottom - 2; // Ajustado para registrar colisiones aéreas
+
+            if (
+                dinoRect.right > obstacleLeftJusto && 
+                dinoRect.left < obstacleRightJusto &&
+                dinoRect.bottom > obstacleTopJusto &&
+                dinoRect.top < obstacleBottomJusto // Si el dino no pasa completamente por arriba
+            ) {
+                clearInterval(moveInterval);
+                gameOver();
+            }
+
+        }, 16); 
+
+        if (score < targetScore - 1) {
+            let randomTime = Math.random() * (3200 - 2000) + 2000; 
+            obstacleTimeout = setTimeout(createObstacle, randomTime);
+        }
+    }
+
+    function triggerMeta() {
+        infinixMeta.style.display = "block";
+        let metaPosition = gameContainer.offsetWidth;
+
+        let metaInterval = setInterval(() => {
+            if (gameStatus !== "PLAYING") {
+                clearInterval(metaInterval);
+                return;
+            }
+
+            metaPosition -= 3.5;
+            infinixMeta.style.left = metaPosition + "px";
+
+            let dinoRect = dino.getBoundingClientRect();
+            let metaRect = infinixMeta.getBoundingClientRect();
+
+            if (
+                dinoRect.right > metaRect.left + 10 &&
+                dinoRect.left < metaRect.right - 10 &&
+                dinoRect.bottom > metaRect.top
+            ) {
+                clearInterval(metaInterval);
+                victory();
+            }
+        }, 16);
+    }
+
+    function gameOver() {
+        gameStatus = "GAMEOVER";
+        gameOverText.style.display = "block";
+        playSound("gameover"); // Sonido de choque
+        clearTimeout(obstacleTimeout);
+    }
+
+    function victory() {
+        gameStatus = "VICTORY";
+        victoryText.style.display = "block";
+        playSound("victory"); // Sonido final
+        clearTimeout(obstacleTimeout);
+    }
+
+    function restartGame() {
+        gameStatus = "PLAYING";
+        score = 0;
+        scoreDisplay.innerText = `Esquivados: ${score} / ${targetScore}`;
+        gameOverText.style.display = "none";
+        victoryText.style.display = "none";
+        infinixMeta.style.display = "none";
+        infinixMeta.style.left = "auto"; 
+        infinixMeta.style.right = "-150px";
+        
+        const remainingObstacles = document.querySelectorAll(".brand-obstacle");
+        remainingObstacles.forEach(o => o.remove());
+
+        createObstacle();
+    }
+
+    createObstacle();
+</script>
+</body>
+</html>
